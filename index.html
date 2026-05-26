@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro Macro Panel</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #0f172a; color: #f8fafc; padding: 20px; margin: 0; display: flex; flex-direction: column; align-items: center; padding-bottom: 80px; }
+        h1 { margin-bottom: 5px; font-size: 24px; color: #38bdf8; text-align: center; }
+        h2 { font-size: 16px; color: #f1f5f9; border-bottom: 1px solid #334155; padding-bottom: 8px; margin-top: 20px; width: 100%; max-width: 350px; }
+        .subtitle { color: #94a3b8; margin-bottom: 20px; font-size: 13px; text-align: center; }
+        .panel-ancho { width: 100%; max-width: 350px; }
+        .card { background-color: #1e293b; padding: 18px; border-radius: 14px; margin-bottom: 15px; box-sizing: border-box; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2); }
+        .entorno-block { background: #151f32; border: 1px solid #23334d; padding: 12px; border-radius: 10px; margin-bottom: 12px; }
+        .entorno-titulo { font-size: 11px; color: #38bdf8; text-transform: uppercase; font-weight: bold; margin-bottom: 8px; letter-spacing: 0.5px; }
+        .btn-group { display: flex; flex-direction: column; gap: 8px; }
+        .row-btn { display: flex; gap: 6px; }
+        .btn { flex: 1; padding: 10px; border: none; border-radius: 8px; font-size: 12px; font-weight: bold; color: white; cursor: pointer; }
+        .btn-start { background-color: #10b981; }
+        .btn-stop { background-color: #ef4444; }
+        .btn-code-main { background-color: #0284c7; width: 100%; padding: 12px; font-size: 13px; border-radius: 8px; font-weight: bold; margin-bottom: 15px; color: white; border: none; cursor: pointer; box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3); }
+        
+        .ngrok-container { background-color: #0f172a; border: 1px dashed #0ea5e9; border-radius: 10px; padding: 12px; margin-top: 5px; }
+        .input-ngrok { width: 100%; padding: 8px; background-color: #1e293b; border: 1px solid #334155; border-radius: 6px; color: #38bdf8; text-align: center; font-size: 16px; font-weight: bold; box-sizing: border-box; margin-top: 5px; margin-bottom: 8px; }
+        .btn-ngrok { background-color: #0ea5e9; width: 100%; padding: 10px; font-weight: bold; font-size: 12px; text-transform: uppercase; border-radius: 6px; border: none; color: white; cursor: pointer; }
+        
+        select { width: 100%; padding: 10px; margin-bottom: 10px; background-color: #0f172a; border: 1px solid #334155; border-radius: 6px; color: white; box-sizing: border-box; font-size: 13px; }
+        #log { position: fixed; bottom: 15px; background-color: #334155; padding: 10px 25px; border-radius: 30px; font-size: 13px; max-width: 80%; text-align: center; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.4); z-index: 10; transition: background 0.3s ease; }
+    </style>
+</head>
+<body>
+
+    <h1>Pro Macro Panel</h1>
+    <div class="subtitle">Control Asíncrono de Entornos locales</div>
+
+   
+
+    <div class="panel-ancho">
+        <h2>💻 Proyectos Detectados</h2>
+        <div class="card">
+            <label style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 6px;">Selecciona un proyecto:</label>
+            <select id="selector-entornos" onchange="actualizarBotonesEntorno()"></select>
+            
+            <div id="controles-proyecto-activo" style="margin-top: 15px;"></div>
+        </div>
+    </div>
+
+    <div id="log">Sincronizando...</div>
+
+    <script>
+        const IP_COMPUTADORA = '192.168.0.247'; 
+        const URL_BASE = (window.location.origin === "null" || window.location.protocol === "file:") 
+            ? `http://${IP_COMPUTADORA}:4000/api` 
+            : `${window.location.origin}/api`;
+
+        let proyectosCargados = [];
+
+        async function inicializarPanel() {
+            const selectorEntornos = document.getElementById('selector-entornos');
+            const logDiv = document.getElementById('log');
+
+            try {
+                const respuesta = await fetch(`${URL_BASE}/panel-completo`);
+                const datos = await respuesta.json();
+                proyectosCargados = datos.proyectos;
+
+                selectorEntornos.innerHTML = '<option value="">-- Elige un proyecto --</option>';
+                proyectosCargados.forEach(proy => {
+                    selectorEntornos.innerHTML += `<option value="${proy.nombre}">${proy.nombre}</option>`;
+                });
+
+                document.getElementById('controles-proyecto-activo').innerHTML = "";
+                logDiv.innerText = "Sincronizado";
+                logDiv.style.backgroundColor = "#1e293b";
+            } catch (error) { 
+                logDiv.innerText = "❌ Error de conexión"; 
+                logDiv.style.backgroundColor = "#b91c1c";
+            }
+        }
+
+        function actualizarBotonesEntorno() {
+            const proyectoSeleccionado = document.getElementById('selector-entornos').value;
+            const contenedorControles = document.getElementById('controles-proyecto-activo');
+
+            if (!proyectoSeleccionado) {
+                contenedorControles.innerHTML = "";
+                return;
+            }
+
+            const proy = proyectosCargados.find(p => p.nombre === proyectoSeleccionado);
+
+            if (proy) {
+                // 1. Botón Principal Azul: Lanzar ventana limpia en VS Code
+                let HTMLBotonVSCode = `
+                    <button class="btn-code-main" onclick="abrirProyectoEnVSCode('${proy.nombre}')">
+                        💻 Abrir "${proy.nombre}" en VS Code
+                    </button>
+                `;
+
+                let HTMLEntornos = '';
+
+                // 2. Iterar entornos (frontend, backend) para lanzar scripts adentro de la terminal de VS Code
+                proy.entornos.forEach(entorno => {
+                    let HTMLBotones = '';
+                    
+                    entorno.scripts.forEach(script => {
+                        const comandoCompleto = script === 'start' ? 'npm start' : `npm run ${script}`;
+                        HTMLBotones += `
+                            <div class="row-btn" style="margin-bottom: 6px;">
+                                <button class="btn btn-start" onclick="controlarEntorno('start', '${proy.nombre}', '${comandoCompleto}', '${entorno.subCarpeta}')">⚡ Terminal ${script}</button>
+                                <button class="btn btn-stop" onclick="controlarEntorno('stop', '${proy.nombre}', '${comandoCompleto}', '${entorno.subCarpeta}')">🛑 Detener</button>
+                                        <button class="btn" style="background-color:#475569;" onclick="limpiarTerminal('${proy.nombre}', '${entorno.subCarpeta}')">🧹</button>
+                                </div>
+                        `;
+                    });
+
+                    HTMLEntornos += `
+                        <div class="entorno-block">
+                            <div class="entorno-titulo">⚙️ Entorno Integrado: ${entorno.tipo}</div>
+                            <div class="btn-group">${HTMLBotones}</div>
+                        </div>
+                    `;
+                });
+
+                // 3. Sección de Ngrok única en la raíz
+                let HTMLNgrokUnificado = `
+                    <div class="ngrok-container" style="margin-top: 15px;">
+                        <label style="font-size: 11px; color: #38bdf8; font-weight: bold; display: block; text-transform: uppercase; text-align: center;">🚀 Túnel Ngrok Global (Raíz)</label>
+                        <input type="number" id="puerto-ngrok-global" class="input-ngrok" value="4000">
+                        <button class="btn-ngrok" onclick="ejecutarNgrokUnificado('${proy.nombre}')">
+                            ⚡ Levantar Ngrok
+                        </button>
+                    </div>
+                `;
+
+                contenedorControles.innerHTML = `
+                    <div>
+                        ${HTMLBotonVSCode}
+                        ${HTMLEntornos}
+                        ${HTMLNgrokUnificado}
+                    </div>
+                `;
+            }
+        }
+
+        async function abrirProyectoEnVSCode(proyecto) {
+            const logDiv = document.getElementById('log');
+            logDiv.innerText = "Abriendo VS Code...";
+            try {
+                const respuesta = await fetch(`${URL_BASE}/macro/vscode-abrir/${encodeURIComponent(proyecto)}`, { method: 'POST' });
+                const res = await respuesta.json();
+                logDiv.innerText = res.message;
+            } catch (e) { logDiv.innerText = "❌ Error abriendo VS Code"; }
+        }
+
+        async function controlarEntorno(accion, proyecto, comando, subCarpeta) {
+            const logDiv = document.getElementById('log');
+            logDiv.innerText = `Enviando orden a VS Code...`;
+            try {
+                const respuesta = await fetch(`${URL_BASE}/macro/${accion}/${encodeURIComponent(proyecto)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ comando, subCarpeta })
+                });
+                const res = await respuesta.json();
+                logDiv.innerText = res.message;
+            } catch (e) { logDiv.innerText = "❌ Error enviando señal"; }
+        }
+
+        async function ejecutarNgrokUnificado(proyecto) {
+            const logDiv = document.getElementById('log');
+            const puertoIngresado = document.getElementById('puerto-ngrok-global').value || '4000';
+            logDiv.innerText = "Lanzando ngrok...";
+            try {
+                const respuesta = await fetch(`${URL_BASE}/macro/ngrok/${encodeURIComponent(proyecto)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ puerto: puertoIngresado })
+                });
+                const res = await respuesta.json();
+                logDiv.innerText = res.message;
+            } catch (e) { logDiv.innerText = "❌ Error al lanzar ngrok.exe"; }
+        }
+
+     async function limpiarTerminal(proyecto, subCarpeta) {
+    const logDiv = document.getElementById('log');
+    logDiv.innerText = "Limpiando terminal...";
+    try {
+        const respuesta = await fetch(`${URL_BASE}/macro/clear/${encodeURIComponent(proyecto)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ subCarpeta })
+        });
+        const res = await respuesta.json();
+        logDiv.innerText = res.message;
+    } catch (e) { logDiv.innerText = "❌ Error limpiando terminal"; }
+}
+
+        window.addEventListener('DOMContentLoaded', inicializarPanel);
+    </script>
+</body>
+</html>

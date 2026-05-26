@@ -1,0 +1,20 @@
+[
+  {
+    "id": "1779244186054",
+    "nombre": "Lanzar FRONTEND",
+    "comando": "npm run dev",
+    "proyectoAsociado": "carrito-react"
+  },
+  {
+    "id": "1779248856334",
+    "nombre": "Tunel Ngrok",
+    "comando": "./ngrok.exe http 5000",
+    "proyectoAsociado": "carrito-react"
+  },
+  {
+    "id": "1779248991304",
+    "nombre": "Tunel",
+    "comando": "./ngrok.exe http 5000",
+    "proyectoAsociado": "carrito-react"
+  }
+]
