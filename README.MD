@@ -1,99 +1,191 @@
-# 🚀 Pro Macro Control Panel (Web Edition)
+# MacroDev
 
-Un panel de automatización web avanzado y dinámico inspirado en MacroDroid, diseñado específicamente para desarrolladores. Permite gestionar múltiples entornos de desarrollo en tu PC, crear y eliminar macros personalizadas en caliente (como comandos de Git, procesos de _build_ o linters) y ejecutar tareas en segundo plano directamente desde el navegador de tu teléfono móvil a través de la red Wi-Fi local.
-
-## 🛠️ Arquitectura y Tecnologías
-
-- **Backend:** Node.js con Express. Gestiona el sistema de archivos (`fs`), administra subprocesos asíncronos (`child_process.exec`) y controla de manera independiente los PIDs de las terminales para apagarlas de forma limpia.
-- **Persistencia Local:** Base de datos ligera basada en un archivo plano `macros-personalizadas.json` que almacena los comandos configurados desde la IU sin dependencias externas pesadas.
-- **Frontend:** Single Page Application (SPA) responsiva construida con HTML5, CSS3 y JavaScript Vanilla (Fetch API), optimizada para pantallas móviles y guardado como Web App.
+Panel web de control asíncrono para gestionar entornos de desarrollo locales (Node, React, Vite, etc.) desde cualquier dispositivo en la misma red, incluyendo smartphones.
 
 ---
 
-## 📦 Estructura del Directorio de Trabajo
+## ¿Qué hace?
 
-Para un funcionamiento óptimo y una correcta detección, organiza la herramienta dentro de tu carpeta raíz de proyectos:
+- Detecta automáticamente todos los proyectos dentro de una carpeta raíz (`PORTAFOLIO`)
+- Permite abrir proyectos en VS Code con un botón
+- Lanza y detiene terminales integradas de VS Code de forma remota
+- Ejecuta túneles Ngrok desde la terminal de VS Code
+- Limpia terminales activas
+- Muestra un QR al arrancar para acceder desde el móvil sin escribir IPs
 
-```text
-📁 PORTAFOLIO/                       <- Tu carpeta madre de desarrollo
-├── 📁 tu-tienda-virtual/            <- Un proyecto cualquiera de tu lista
-├── 📁 mi-portafolio-web/            <- Otro proyecto de tu lista
-└── 📁 macroweb/                     <- ESTE PROYECTO (Servidor de automatización)
-    ├── 📁 node_modules/             <- Módulos de Node (Express, Cors)
-    ├── 📄 package.json              <- Configuración del servidor de macros
-    ├── 📄 server.js                 <- Código fuente del backend
-    ├── 📄 index.html                <- Código fuente de la interfaz web
-    └── 📄 macros-personalizadas.json<- Archivo auto-generado (Base de datos de macros)
+---
 
+## Arquitectura
+
+```
+Móvil (navegador)
+    │
+    │  HTTP  LAN WiFi
+    ▼
+MacroDev Server  (Node/Express  :4000)
+    │
+    │  HTTP  localhost
+    ▼
+MacroDev Extension  (VS Code  :4001)
+    │
+    │  VS Code API
+    ▼
+Terminal integrada de VS Code
 ```
 
 ---
 
-## 🚀 Pasos para la Implementación
+## Estructura de archivos
 
-### 1. Configurar la Ruta de Desarrollo (`server.js`)
+```
+macroweb/
+├── server.js           ← Servidor Express (puerto 4000)
+├── index.html          ← Panel de control principal
+├── bienvenida.html     ← Página de inicio con QR y tutorial
+├── iniciar.vbs         ← Lanzador de doble click (sin terminal visible)
+└── README.md
 
-Abre el archivo `server.js` y asegúrate de que la constante `CARPETA_MADRE` apunte al directorio raíz donde tienes guardados tus proyectos. Recuerda usar doble barra invertida (`\\`) si estás trabajando en Windows:
-
-```javascript
-const CARPETA_MADRE = "C:\\Users\\willt\\Desktop\\PORTAFOLIO";
+macrodev-terminal/      ← Extensión de VS Code
+├── extension.js        ← Servidor HTTP interno (puerto 4001)
+└── package.json        ← Manifest de la extensión
 ```
 
-### 2. Configurar el Punto de Acceso Móvil (`index.html`)
+---
 
-Abre tu archivo `index.html` y coloca la dirección IP local IPv4 de tu computadora en la constante `IP_COMPUTADORA`:
+## Requisitos
 
-```javascript
-const IP_COMPUTADORA = "192.168.1.15"; // Reemplaza con tu IP local real
+- Node.js v18+
+- VS Code
+- Windows 10/11
+- Ngrok (opcional, solo si usas túneles)
+
+---
+
+## Instalación
+
+### 1. Extensión de VS Code
+
+La extensión permite a MacroDev controlar las terminales integradas de VS Code.
+
+**Opción A — desde terminal:**
+```cmd
+code --install-extension macrodev-terminal-1.0.0.vsix
 ```
 
-_(Nota: Puedes obtener tu IP abriendo la consola de comandos de tu PC y ejecutando `ipconfig` en Windows o `ifconfig` / `ip a` en entornos basados en Unix)._
+**Opción B — desde VS Code:**
+`Ctrl+Shift+X` → `···` (tres puntos) → `Install from VSIX` → seleccionar el archivo
 
-### 3. Instalación de Dependencias e Inicialización
+Reinicia VS Code completamente después de instalar.
+Deberías ver `$(terminal) MacroDev :4001` en la barra de estado inferior.
 
-Abre la terminal de tu sistema operativo o la consola integrada de VS Code, dirígete a la carpeta del proyecto e inicia el servidor con los siguientes comandos:
+**Verificar que está activa:**
+```
+http://127.0.0.1:4001/ping
+```
+Respuesta esperada: `{"status":"ok","message":"MacroDev Extension activa."}`
 
-```bash
-# Cambiar al directorio del panel de macros
-cd c:/Users/willt/Desktop/PORTAFOLIO/macroweb
+### 2. Dependencias del servidor
 
-# Instalar los paquetes express y cors requeridos
+```cmd
+cd macroweb
 npm install
+```
 
-# Lanzar el backend de automatización
+### 3. Configurar la carpeta de proyectos
+
+Edita esta línea en `server.js`:
+```js
+const CARPETA_MADRE = 'C:\\Users\\TU_USUARIO\\Desktop\\PORTAFOLIO';
+```
+
+---
+
+## Uso
+
+### Arrancar MacroDev
+
+**Opción A — doble click:**
+Doble click en `iniciar.vbs`. El servidor arranca en segundo plano y abre el navegador automáticamente.
+
+**Opción B — terminal:**
+```cmd
 node server.js
-
 ```
 
-Si todo está bien configurado, la terminal de tu PC mostrará el mensaje:
+### Acceder desde el móvil
 
-`🚀 Servidor Pro-Macros listo en puerto 5000`
+Al abrir `http://localhost:4000` en la PC verás la página de bienvenida con:
+- Un QR con la URL de tu red local (`http://192.168.x.x:4000`)
+- Estado de la extensión de VS Code
+- Guía de instalación de la extensión
+
+Escanea el QR con tu móvil (misma red WiFi) y accede al panel.
+
+### Panel de control (`/panel`)
+
+1. **Selecciona un proyecto** del dropdown — MacroDev lo detecta automáticamente leyendo los `package.json`
+2. **Abrir en VS Code** — abre la carpeta del proyecto en VS Code
+3. **⚡ Terminal [script]** — abre una terminal integrada en VS Code y ejecuta el script (start, dev, etc.)
+4. **🛑 Stop** — cierra esa terminal integrada
+5. **🧹** — limpia (cls) esa terminal sin cerrarla
+6. **Ngrok** — abre un túnel HTTP en la terminal de VS Code al puerto indicado
 
 ---
 
-## 📱 Configuración y Emparejamiento en el Celular
+## Endpoints de la API
 
-1. **Red Común:** Verifica que tu teléfono móvil y tu computadora compartan exactamente la **misma red Wi-Fi**.
-2. **Navegación Local:** Abre el navegador web en tu smartphone (se recomienda Google Chrome en Android o Safari en iOS) e ingresa la IP de la PC junto con el puerto asignado:
-
-```text
-[http://192.168.1.15:5000](http://192.168.1.15:5000)
-
-
-```
-
-```
-3. **Transformar en Aplicación Móvil:** Para evitar ingresar la dirección URL manualmente en el futuro:
-   * En **Chrome (Android):** Despliega el menú de los **tres puntos** arriba a la derecha y pulsa **"Añadir a la pantalla de inicio"**.
-   * En **Safari (iOS):** Toca el botón de **"Compartir"** abajo al centro y selecciona **"Añadir a la pantalla de inicio"**.
-   * Esto colocará un icono de acceso rápido en tu escritorio idéntico al de una App nativa.
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/api/panel-completo` | Lista todos los proyectos detectados con sus scripts |
+| GET | `/api/info` | Devuelve IP, puerto y URL del servidor |
+| POST | `/api/macro/vscode-abrir/:nombre` | Abre el proyecto en VS Code |
+| POST | `/api/macro/start/:nombre` | Abre terminal integrada y ejecuta comando |
+| POST | `/api/macro/stop/:nombre` | Cierra la terminal integrada |
+| POST | `/api/macro/clear/:nombre` | Ejecuta `cls` en la terminal activa |
+| POST | `/api/macro/ngrok/:nombre` | Lanza ngrok en terminal de VS Code |
+| POST | `/api/macro/clear-console` | Limpia la consola donde corre MacroDev |
 
 ---
 
-## 🔍 Características Avanzadas del Sistema
+## Extensión — Endpoints internos (:4001)
 
-* **Escaner en Caliente:** El servidor inspecciona tu carpeta de desarrollo dinámicamente en cada petición. Si agregas, pegas, clonas o creas carpetas nuevas desde el Explorador de Archivos de Windows, aparecerán en tu móvil al instante, siempre y cuando contengan su respectivo archivo `package.json`.
-* **Capa de Aislamiento:** La carpeta `macroweb` se encuentra protegida mediante filtros lógicos internos en el endpoint `/api/panel-completo` para evitar que apagues el servidor remoto de macros por accidente.
-* **Inyección y Consumición de Macros Custom:** Al rellenar el formulario superior desde tu móvil, los comandos se guardan en el archivo JSON. Al ejecutarlos, el backend corre la instrucción en la carpeta destino seleccionada, captura el *output* estándar de la terminal de tu PC (`stdout`) y te devuelve los primeros caracteres del resultado de la consola directo a la pantalla de tu teléfono.
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/ping` | Verificar que la extensión está activa |
+| POST | `/terminal/start` | Crear terminal con `{ ruta, comando, titulo }` |
+| POST | `/terminal/stop` | Cerrar terminal por `{ titulo }` |
+| POST | `/terminal/clear` | Enviar `cls` a terminal por `{ titulo }` |
+| POST | `/terminal/notify` | Mostrar popup en VS Code con `{ mensaje }` |
 
+---
+
+## Solución de problemas
+
+**La extensión no aparece en VS Code:**
+- Verifica que instalaste con `code --install-extension` y reiniciaste VS Code completamente
+- Ejecuta `code --list-extensions | findstr macrodev` para confirmar instalación
+
+**No conecta desde el móvil:**
+- Ambos dispositivos deben estar en la misma red WiFi
+- Verifica que el firewall de Windows permite conexiones al puerto 4000
+
+**El botón Start devuelve error 503:**
+- VS Code debe estar abierto antes de usar los botones del panel
+- Verifica el ping a `http://127.0.0.1:4001/ping`
+
+**Ngrok no ejecuta:**
+- El archivo `ngrok.exe` debe estar en la raíz del proyecto (no en subcarpeta)
+- Verifica que ngrok está autenticado con `ngrok config add-authtoken TU_TOKEN`
+
+---
+
+## Regenerar la extensión (.vsix)
+
+Si modificas `extension.js`, reempaqueta así desde la carpeta `macrodev-terminal`:
+
+```cmd
+npx @vscode/vsce package --no-dependencies --allow-missing-repository --allow-star-activation
+code --install-extension macrodev-terminal-1.0.0.vsix
 ```
+
+Reinicia VS Code después.

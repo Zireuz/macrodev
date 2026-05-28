@@ -1,23 +1,27 @@
 const express = require('express');
 const cors    = require('cors');
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process');
 const http    = require('http');
+const os      = require('os');
 const fs      = require('fs');
 const path    = require('path');
+
+process.on('uncaughtException', (err) => {
+    console.error('ERROR FATAL:', err);
+});
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Bienvenida (raíz) y panel
+app.get('/',      (req, res) => res.sendFile(path.join(__dirname, 'bienvenida.html')));
+app.get('/panel', (req, res) => res.sendFile(path.join(__dirname, 'panel.html')));
+
 app.use(express.static(__dirname));
 
 // ─────────────────────────────────────────────────────────
-//  CONFIGURACIÓN
-// ─────────────────────────────────────────────────────────
-const CARPETA_MADRE = 'C:\\Users\\willt\\Desktop\\PORTAFOLIO';
-
-// ─────────────────────────────────────────────────────────
-//  HELPER: llama a la extensión MacroDev que corre dentro
-//  de VS Code en localhost:4001
+//  HELPER: llama a la extensión MacroDev en VS Code (:4001)
 // ─────────────────────────────────────────────────────────
 function llamarExtension(endpoint, datos) {
     return new Promise((resolve, reject) => {
@@ -37,7 +41,7 @@ function llamarExtension(endpoint, datos) {
             res.on('data', chunk => data += chunk);
             res.on('end', () => {
                 try { resolve(JSON.parse(data)); }
-                catch { resolve({ status: 'error', message: 'Respuesta invalida de la extension.' }); }
+                catch { resolve({ status: 'error', message: 'Respuesta invalida.' }); }
             });
         });
         req.on('error', () => reject(
@@ -48,11 +52,15 @@ function llamarExtension(endpoint, datos) {
     });
 }
 
+// 📁 CONFIGURACIÓN DE RUTAS
+const CARPETA_MADRE = 'C:\\Users\\willt\\Desktop\\PORTAFOLIO'; 
+
+// Guardaremos los PID (Identificadores) de los procesos para apagarlos individualmente
+let procesosActivos = {};
+
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
-// ─────────────────────────────────────────────────────────
-//  FUNCION: escanea carpetas buscando package.json
-// ─────────────────────────────────────────────────────────
+// 🔍 FUNCIÓN AUXILIAR: Escanea carpetas buscando package.json
 function detectarEntornos(rutaProyectoBase) {
     let entornosEncontrados = [];
     if (fs.existsSync(path.join(rutaProyectoBase, 'package.json'))) {
@@ -68,13 +76,11 @@ function detectarEntornos(rutaProyectoBase) {
                 }
             }
         }
-    } catch (e) {}
+    } catch (e) { /* Ignorar carpetas inaccesibles */ }
     return entornosEncontrados;
 }
 
-// ─────────────────────────────────────────────────────────
-//  GET /api/panel-completo
-// ─────────────────────────────────────────────────────────
+// 🌐 ENDPOINT: Carga inicial de proyectos agrupados
 app.get('/api/panel-completo', (req, res) => {
     try {
         const elementos = fs.readdirSync(CARPETA_MADRE);
@@ -83,7 +89,7 @@ app.get('/api/panel-completo', (req, res) => {
         elementos.forEach(elemento => {
             if (elemento === 'macroweb' || elemento.startsWith('.')) return;
             const rutaCompleta = path.join(CARPETA_MADRE, elemento);
-
+            
             if (fs.statSync(rutaCompleta).isDirectory()) {
                 const entornos = detectarEntornos(rutaCompleta);
                 if (entornos.length > 0) {
@@ -91,14 +97,14 @@ app.get('/api/panel-completo', (req, res) => {
                     entornos.forEach(entorno => {
                         let scriptsDisponibles = [];
                         try {
-                            const pkgPath = path.join(entorno.rutaAbsoluta, 'package.json');
-                            const pkg     = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-                            if (pkg.scripts) scriptsDisponibles = Object.keys(pkg.scripts);
+                            const packageJsonPath = path.join(entorno.rutaAbsoluta, 'package.json');
+                            const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+                            if (packageJson.scripts) scriptsDisponibles = Object.keys(packageJson.scripts);
                         } catch (err) {}
                         proyectoObjeto.entornos.push({
-                            tipo      : entorno.tipo === '' ? 'frontend' : entorno.tipo,
+                            tipo: entorno.tipo === '' ? 'frontend' : entorno.tipo,
                             subCarpeta: entorno.subCarpeta,
-                            scripts   : scriptsDisponibles
+                            scripts: scriptsDisponibles
                         });
                     });
                     proyectosAgrupados.push(proyectoObjeto);
@@ -111,82 +117,95 @@ app.get('/api/panel-completo', (req, res) => {
     }
 });
 
-// ─────────────────────────────────────────────────────────
-//  POST /api/macro/vscode-abrir/:nombre
-//  Abre la carpeta del proyecto en VS Code
-// ─────────────────────────────────────────────────────────
+// 💻 ENDPOINT: Abrir la ventana principal de VS Code de forma desprendida
 app.post('/api/macro/vscode-abrir/:nombre', (req, res) => {
     const { nombre } = req.params;
     const rutaProyecto = path.join(CARPETA_MADRE, nombre);
 
-    const { spawn } = require('child_process');
-    const proc = spawn('code', [rutaProyecto], {
-        detached: true,
-        stdio: 'ignore',
-        shell: true,
-        windowsHide: true   // ← suprime la ventana CMD
-    });
-    proc.unref();
-
+    console.log(`💻 Abriendo VS Code en: ${rutaProyecto}`);
+    exec(`cmd.exe /c start /max code "${rutaProyecto}"`, { windowsHide: false });
     res.json({ status: 'success', message: `${nombre} abierto en VS Code!` });
 });
 
-// ─────────────────────────────────────────────────────────
-//  POST /api/macro/start/:nombre
-//  Pide a la extension que abra una terminal integrada
-// ─────────────────────────────────────────────────────────
+// ⚡ ENDPOINT START: Abre terminal integrada en VS Code vía extensión MacroDev
 app.post('/api/macro/start/:nombre', async (req, res) => {
-    const { nombre }             = req.params;
+    const { nombre } = req.params;
     const { comando, subCarpeta } = req.body;
 
     let rutaEjecucion = path.join(CARPETA_MADRE, nombre);
     if (subCarpeta) rutaEjecucion = path.join(rutaEjecucion, subCarpeta);
 
-    // El titulo es la clave para encontrar y cerrar la terminal despues
     const titulo = `MacroDev | ${nombre} - ${subCarpeta || 'raiz'}`;
-
-    console.log(`[start] Pidiendo terminal: "${titulo}" → ${comando}`);
+    console.log(`⚡ [start] Terminal: "${titulo}" → ${comando}`);
 
     try {
         const respuesta = await llamarExtension('/terminal/start', {
-            ruta   : rutaEjecucion,
-            comando: comando,
-            titulo : titulo
+            ruta: rutaEjecucion, comando, titulo
         });
         res.json(respuesta);
     } catch (error) {
-        console.error(`[start] ${error.message}`);
         res.status(503).json({ status: 'error', message: error.message });
     }
 });
 
-// ─────────────────────────────────────────────────────────
-//  POST /api/macro/stop/:nombre
-//  Pide a la extension que cierre la terminal por su titulo
-// ─────────────────────────────────────────────────────────
+// 🛑 ENDPOINT STOP: Cierra terminal integrada por su título único
 app.post('/api/macro/stop/:nombre', async (req, res) => {
-    const { nombre }   = req.params;
+    const { nombre } = req.params;
     const { subCarpeta } = req.body;
 
     const titulo = `MacroDev | ${nombre} - ${subCarpeta || 'raiz'}`;
-
-    console.log(`[stop] Cerrando terminal: "${titulo}"`);
+    console.log(`🛑 [stop] Cerrando terminal: "${titulo}"`);
 
     try {
         const respuesta = await llamarExtension('/terminal/stop', { titulo });
         res.json(respuesta);
     } catch (error) {
-        console.error(`[stop] ${error.message}`);
         res.status(503).json({ status: 'error', message: error.message });
     }
 });
 
+// 🌐 ENDPOINT NGROK GLOBAL
+app.post('/api/macro/ngrok/:nombre', async (req, res) => {
+    const { nombre } = req.params;
+    const { puerto } = req.body; 
 
+    const rutaProyectoRaiz = path.join(CARPETA_MADRE, nombre);
+    const ejecutableNgrok = path.join(rutaProyectoRaiz, 'ngrok.exe');
 
+    if (!fs.existsSync(ejecutableNgrok)) {
+        return res.json({ status: 'error', message: 'No se encontró ngrok.exe en la raíz.' });
+    }
+
+    console.log(`🚀 Lanzando Ngrok de fondo en puerto ${puerto}`);
+    try {
+        const respuesta = await llamarExtension('/terminal/start', {
+            ruta   : rutaProyectoRaiz,
+            comando: `.\\ngrok.exe http ${puerto}`,
+            titulo : `MacroDev | ${nombre} - ngrok`
+        });
+        return res.json(respuesta);
+    } catch (error) {
+        return res.status(503).json({ status: 'error', message: error.message });
+    }
+
+    res.json({ status: 'success', message: `Túnel Ngrok en puerto ${puerto} abierto.` });
+});
+
+// 🧼 ENDPOINT: Limpiar la terminal física
+app.post('/api/macro/clear-console', (req, res) => {
+    try {
+        process.stdout.write('\x1B[2J\x1B[0f');
+        res.json({ status: 'success', message: '¡Consola de la PC limpia!' });
+    } catch (error) { res.status(500).json({ status: 'error' }); }
+});
+
+// 🧹 ENDPOINT: Limpiar terminal activa (cls)
 app.post('/api/macro/clear/:nombre', async (req, res) => {
     const { nombre } = req.params;
     const { subCarpeta } = req.body;
+
     const titulo = `MacroDev | ${nombre} - ${subCarpeta || 'raiz'}`;
+
     try {
         const respuesta = await llamarExtension('/terminal/clear', { titulo });
         res.json(respuesta);
@@ -195,46 +214,15 @@ app.post('/api/macro/clear/:nombre', async (req, res) => {
     }
 });
 
-app.post('/api/macro/ngrok/:nombre', async (req, res) => {
-    const { nombre } = req.params;
-    const { puerto } = req.body;
 
-    const rutaProyectoRaiz = path.join(CARPETA_MADRE, nombre);
-    const ejecutableNgrok  = path.join(rutaProyectoRaiz, 'ngrok.exe');
 
-    if (!fs.existsSync(ejecutableNgrok)) {
-        return res.json({ status: 'error', message: 'No se encontro ngrok.exe en la raiz.' });
-    }
-
-    const titulo = `MacroDev | ${nombre} - ngrok`;
-
-    try {
-        const respuesta = await llamarExtension('/terminal/start', {
-            ruta   : rutaProyectoRaiz,
-            comando: `.\\ngrok.exe http ${puerto}`,
-            titulo : titulo
-        });
-        res.json(respuesta);
-    } catch (error) {
-        res.status(503).json({ status: 'error', message: error.message });
-    }
+// Info del servidor para generar el QR
+app.get('/api/info', (req, res) => {
+    const ip = Object.values(os.networkInterfaces())
+        .flat()
+        .find(i => i.family === 'IPv4' && !i.internal)?.address || 'localhost';
+    res.json({ ip, puerto: PORT, url: `http://${ip}:${PORT}` });
 });
-
-// ─────────────────────────────────────────────────────────
-//  POST /api/macro/clear-console
-// ─────────────────────────────────────────────────────────
-app.post('/api/macro/clear-console', (req, res) => {
-    try {
-        process.stdout.write('\x1B[2J\x1B[0f');
-        res.json({ status: 'success', message: 'Consola de la PC limpia!' });
-    } catch (error) {
-        res.status(500).json({ status: 'error' });
-    }
-});
-
-app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'index.html')); });
 
 const PORT = 4000;
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Servidor MacroDev corriendo en http://localhost:${PORT}`);
-});
+app.listen(PORT, '0.0.0.0', () => { console.log(`🚀 Servidor MacroDev Estable corriendo en http://localhost:${PORT}`); });
