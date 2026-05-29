@@ -61,7 +61,10 @@ macrodev-terminal/      ← Extensión de VS Code
 
 ---
 
-## Instalación
+## Instalación MacroWeb 🛫
+
+     1. Poner carpeta "macroweb" dentro de la carpeta donde tengas tus proyectos, al mismo nive de estos.
+     2. Instalar extension (La app solo funciona con la extensión.)
 
 ### 1. Extensión de VS Code
 
@@ -105,7 +108,7 @@ const CARPETA_MADRE = 'C:\\Users\\TU_USUARIO\\Desktop\\PORTAFOLIO';
 ### Arrancar MacroDev
 
 **Opción A — doble click:**
-Doble click en `iniciar.vbs`. El servidor arranca en segundo plano y abre el navegador automáticamente.
+Doble click en `iniciar.bat`. El servidor arranca en segundo plano y abre el navegador automáticamente.
 
 **Opción B — terminal:**
 ```cmd
