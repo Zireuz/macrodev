@@ -1,6 +1,4 @@
 @echo off
 set "DIR=%~dp0"
-start /min cmd /c "node "%DIR%server.js""
-timeout /t 2 /nobreak >nul
-start "" "http://localhost:4000"
+start "" powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -File "%DIR%iniciar.ps1"
 exit

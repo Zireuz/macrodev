@@ -1,4 +1,5 @@
-const express = require('express');
+const express  = require('express');
+const QRCode   = require('qrcode');
 const cors    = require('cors');
 const { exec, spawn } = require('child_process');
 const http    = require('http');
@@ -6,18 +7,9 @@ const os      = require('os');
 const fs      = require('fs');
 const path    = require('path');
 
-process.on('uncaughtException', (err) => {
-    console.error('ERROR FATAL:', err);
-});
-
 const app = express();
 app.use(cors());
 app.use(express.json());
-
-// Bienvenida (raíz) y panel
-app.get('/',      (req, res) => res.sendFile(path.join(__dirname, 'bienvenida.html')));
-app.get('/panel', (req, res) => res.sendFile(path.join(__dirname, 'panel.html')));
-
 app.use(express.static(__dirname));
 
 // ─────────────────────────────────────────────────────────
@@ -123,7 +115,13 @@ app.post('/api/macro/vscode-abrir/:nombre', (req, res) => {
     const rutaProyecto = path.join(CARPETA_MADRE, nombre);
 
     console.log(`💻 Abriendo VS Code en: ${rutaProyecto}`);
-    exec(`cmd.exe /c start /max code "${rutaProyecto}"`, { windowsHide: false });
+    const proc = spawn('code', [rutaProyecto], {
+        detached   : true,
+        stdio      : 'ignore',
+        shell      : true,
+        windowsHide: true
+    });
+    proc.unref();
     res.json({ status: 'success', message: `${nombre} abierto en VS Code!` });
 });
 
@@ -199,22 +197,9 @@ app.post('/api/macro/clear-console', (req, res) => {
     } catch (error) { res.status(500).json({ status: 'error' }); }
 });
 
-// 🧹 ENDPOINT: Limpiar terminal activa (cls)
-app.post('/api/macro/clear/:nombre', async (req, res) => {
-    const { nombre } = req.params;
-    const { subCarpeta } = req.body;
-
-    const titulo = `MacroDev | ${nombre} - ${subCarpeta || 'raiz'}`;
-
-    try {
-        const respuesta = await llamarExtension('/terminal/clear', { titulo });
-        res.json(respuesta);
-    } catch (error) {
-        res.status(503).json({ status: 'error', message: error.message });
-    }
-});
-
-
+// Bienvenida (raíz) y panel
+app.get('/',      (req, res) => res.sendFile(path.join(__dirname, 'bienvenida.html')));
+app.get('/panel', (req, res) => res.sendFile(path.join(__dirname, 'panel.html')));
 
 // Info del servidor para generar el QR
 app.get('/api/info', (req, res) => {
@@ -222,6 +207,19 @@ app.get('/api/info', (req, res) => {
         .flat()
         .find(i => i.family === 'IPv4' && !i.internal)?.address || 'localhost';
     res.json({ ip, puerto: PORT, url: `http://${ip}:${PORT}` });
+});
+
+// QR como PNG binario directo
+app.get('/api/qr', async (req, res) => {
+    const url = req.query.url || 'http://localhost:4000/panel';
+    try {
+        const buffer = await QRCode.toBuffer(url, { width: 210, margin: 2 });
+        res.setHeader('Content-Type', 'image/png');
+        res.setHeader('Cache-Control', 'no-store');
+        res.end(buffer);
+    } catch (err) {
+        res.status(500).send('Error generando QR');
+    }
 });
 
 const PORT = 4000;
