@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MacroDev — Bienvenida</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:        #080d14;
+            --surface:   #0d1520;
+            --border:    #1a2740;
+            --accent:    #38bdf8;
+            --accent2:   #0ea5e9;
+            --success:   #10b981;
+            --warn:      #f59e0b;
+            --error:     #ef4444;
+            --text:      #e2e8f0;
+            --muted:     #64748b;
+            --mono:      'JetBrains Mono', monospace;
+            --sans:      'Syne', sans-serif;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--sans);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0.5rem 0;
+            overflow-x: hidden;
+        }
+
+        /* Grid bg */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(56,189,248,.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(56,189,248,.04) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .wrapper {
+        
+            position: relative;
+            z-index: 1;
+            width: 97%;
+            display: flex;    
+            flex-direction: row;
+            gap: 28px;
+        }
+
+        /* ── HEADER ── */
+        .header {
+            text-align: center;
+            padding: 0;
+        }
+        .logo-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(56,189,248,.08);
+            border: 1px solid rgba(56,189,248,.2);
+            border-radius: 30px;
+            padding: 6px 14px;
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--accent);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+        .logo-badge::before {
+            content: '';
+            width: 6px; height: 6px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: .3; }
+        }
+        h1 {
+            font-size: clamp(28px, 6vw, 42px);
+            font-weight: 800;
+            letter-spacing: -1px;
+            color: #fff;
+            line-height: 1.1;
+        }
+        h1 span { color: var(--accent); }
+        .tagline {
+            margin-top: 10px;
+            color: var(--muted);
+            font-size: 14px;
+            font-family: var(--mono);
+        }
+
+        /* ── CARDS ── */
+        .card {
+            width: 65%;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .card-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--accent);
+            font-family: var(--mono);
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+        .qr-card {
+           width: 35%;
+        }
+
+        /* ── STEPS ── */
+        .steps { display: flex; flex-direction: column; gap: 14px; }
+        .step {
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+        }
+        .step-num {
+            min-width: 28px; height: 28px;
+            background: rgba(56,189,248,.1);
+            border: 1px solid rgba(56,189,248,.3);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-family: var(--mono);
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--accent);
+            margin-top: 2px;
+        }
+        .step-done .step-num {
+            background: rgba(16,185,129,.15);
+            border-color: var(--success);
+            color: var(--success);
+        }
+        .step-body { flex: 1; }
+        .step-body strong {
+            display: block;
+            font-size: 14px;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+        .step-body p {
+            font-size: 14px;
+            color: var(--muted);
+            line-height: 1.6;
+            font-family: var(--mono);
+        }
+        .step-body code {
+            background: rgba(56,189,248,.08);
+            border: 1px solid rgba(56,189,248,.15);
+            border-radius: 4px;
+            padding: 2px 6px;
+            color: var(--accent);
+            font-size: 14px;
+        }
+        .step-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+            font-family: var(--mono);
+            margin-top: 6px;
+            padding: 3px 10px;
+            border-radius: 20px;
+        }
+        .status-ok    { background: rgba(16,185,129,.1); color: var(--success); border: 1px solid rgba(16,185,129,.2); }
+        .status-fail  { background: rgba(239,68,68,.1);  color: var(--error);   border: 1px solid rgba(239,68,68,.2); }
+        .status-check { background: rgba(100,116,139,.1); color: var(--muted);  border: 1px solid rgba(100,116,139,.2); }
+
+        /* ── QR SECTION ── */
+        .qr-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+        .qr-box {
+            background: #fff;
+            padding: 14px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 180px; min-height: 180px;
+        }
+        .qr-url {
+            font-family: var(--mono);
+            font-size: 14px;
+            color: var(--accent);
+            background: rgba(56,189,248,.06);
+            border: 1px solid rgba(56,189,248,.2);
+            border-radius: 8px;
+            padding: 10px 18px;
+            text-align: center;
+            word-break: break-all;
+        }
+        .qr-hint {
+            font-size: 14px;
+            color: var(--muted);
+            font-family: var(--mono);
+            text-align: center;
+        }
+        #qr-loading {
+            color: var(--muted);
+            font-family: var(--mono);
+            font-size: 14px;
+            text-align: center;
+        }
+
+        /* ── BTN IR AL PANEL ── */
+        .btn-panel {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 97%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--accent2), #0369a1);
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            font-family: var(--sans);
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            letter-spacing: .5px;
+            transition: transform .15s, box-shadow .15s;
+            box-shadow: 0 8px 24px rgba(14,165,233,.25);
+        }
+        .btn-panel:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(14,165,233,.35);
+        }
+        .btn-panel:active { transform: translateY(0); }
+        .arrow {
+            font-size: 18px;
+            transition: transform .2s;
+        }
+        .btn-panel:hover .arrow { transform: translateX(4px); }
+
+        /* ── FOOTER ── */
+        .footer {
+            text-align: center;
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--muted);
+            padding-top: 10px;
+        }
+
+        /* ── PING badge ── */
+        #ext-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            font-family: var(--mono);
+            padding: 4px 12px;
+            border-radius: 20px;
+            margin-top: 8px;
+        }
+        #ext-dot { width: 6px; height: 6px; border-radius: 50%; }
+    </style>
+</head>
+<body> <!-- HEADER -->
+    <div class="header">
+        <div class="logo-badge">MacroDev v1.0</div>
+        <h1>Control <span>Local</span><br>de Entornos</h1>
+        <p class="tagline">// Panel asíncrono de ejecución de entornos para Developers a través de macros</p>
+    </div>
+<div class="wrapper">
+
+   
+
+    <!-- TUTORIAL EXTENSIÓN -->
+    <div class="card">
+        <div class="card-title">📦 Instalar extensión VS Code</div>
+        <div class="steps">
+
+            <div class="step" id="step1">
+                <div class="step-num">1</div>
+                <div class="step-body">
+                    <strong>Descargar el instalador</strong>
+                    <p>Busca el archivo <code>macrodev-terminal-1.0.0.vsix</code> que viene con MacroDev.</p>
+                </div>
+            </div>
+
+            <div class="step" id="step2">
+                <div class="step-num">2</div>
+                <div class="step-body">
+                    <strong>Instalar en VS Code</strong>
+                    <p>Abre una terminal y ejecuta:</p>
+                    <p style="margin-top:6px"><code>code --install-extension macrodev-terminal-1.0.0.vsix</code></p>
+                    <p style="margin-top:4px">O ve a <code>Ctrl+Shift+X</code> → <code>···</code> → <code>Install from VSIX</code></p>
+                </div>
+            </div>
+
+            <div class="step" id="step3">
+                <div class="step-num">3</div>
+                <div class="step-body">
+                    <strong>Reiniciar VS Code completamente</strong>
+                    <p>Cierra con la X y vuelve a abrirlo. No uses "Reload Window".</p>
+                </div>
+            </div>
+
+            <div class="step" id="step4">
+                <div class="step-num">4</div>
+                <div class="step-body">
+                    <strong>Verificar que está activa</strong>
+                    <p>Deberías ver <code>$(terminal) MacroDev :4001</code> en la barra inferior de VS Code.</p>
+                    <div id="ext-status" class="status-check">
+                        <span id="ext-dot" style="background:#64748b"></span>
+                        <span id="ext-label">Verificando extensión...</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- QR CODE -->
+    <div class="card qr-card">
+        <div class="card-title">📱 Acceso desde el móvil</div>
+        <div class="qr-section">
+            <div class="qr-box" id="qr-box">
+                <div id="qr-loading">Generando QR...</div>
+                <div id="qr-code"></div>
+            </div>
+            <div class="qr-url" id="qr-url">Calculando dirección...</div>
+            <p class="qr-hint">Apunta la cámara de tu móvil al código QR.<br>Ambos dispositivos deben estar en la misma red WiFi.</p>
+        </div>
+  
+</div>
+  </div>
+
+    <!-- IR AL PANEL -->
+    <a href="/panel" class="btn-panel">
+        Ir al Panel de Control
+        <span class="arrow">→</span>
+    </a>
+
+    <div class="footer">MacroDev · Control local de entornos de desarrollo</div>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+    // ── Verificar extensión ──
+    async function checkExtension() {
+        const dot   = document.getElementById('ext-dot');
+        const label = document.getElementById('ext-label');
+        const s4    = document.getElementById('step4');
+        try {
+            const res = await fetch('http://127.0.0.1:4001/ping');
+            const data = await res.json();
+            if (data.status === 'ok') {
+                dot.style.background = '#10b981';
+                label.textContent = 'Extensión activa en :4001';
+                document.getElementById('ext-status').className = 'status-ok';
+                s4.querySelector('.step-num').textContent = '✓';
+                s4.classList.add('step-done');
+            }
+        } catch {
+            dot.style.background = '#ef4444';
+            label.textContent = 'Extensión no detectada — ¿VS Code está abierto?';
+            document.getElementById('ext-status').className = 'status-fail';
+        }
+    }
+
+    // ── Generar QR con la IP real del servidor ──
+    async function generarQR() {
+        const qrLoading = document.getElementById('qr-loading');
+        const qrUrl     = document.getElementById('qr-url');
+        try {
+            const res  = await fetch('/api/info');
+            const data = await res.json();
+
+            qrLoading.style.display = 'none';
+            qrUrl.textContent = data.url;
+
+            new QRCode(document.getElementById('qr-code'), {
+                text        : data.url,
+                width       : 180,
+                height      : 180,
+                colorDark   : '#000000',
+                colorLight  : '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        } catch {
+            qrLoading.textContent = 'No se pudo obtener la IP del servidor.';
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        checkExtension();
+        generarQR();
+        // Re-verificar extensión cada 5s por si VS Code abre después
+        setInterval(checkExtension, 5000);
+    });
+    
+</script>
+</body>
+</html>

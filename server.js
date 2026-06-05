@@ -199,28 +199,48 @@ app.post('/api/macro/clear-console', (req, res) => {
 
 // Bienvenida (raíz) y panel
 app.get('/',      (req, res) => res.sendFile(path.join(__dirname, 'bienvenida.html')));
-app.get('/panel', (req, res) => res.sendFile(path.join(__dirname, 'panel.html')));
+app.get('/panel',      (req, res) => res.sendFile(path.join(__dirname, 'panel.html')));
+app.get('/bienvenida', (req, res) => res.sendFile(path.join(__dirname, 'bienvenida.html')));
 
-// Info del servidor para generar el QR
+// ─────────────────────────────────────────────────────────
+//  ENDPOINTS DE INFORMACIÓN Y GENERACIÓN DE QR CORREGIDOS
+// ─────────────────────────────────────────────────────────
+
+// Info del servidor para generar el QR (Apunta directo al panel)
 app.get('/api/info', (req, res) => {
     const ip = Object.values(os.networkInterfaces())
         .flat()
         .find(i => i.family === 'IPv4' && !i.internal)?.address || 'localhost';
-    res.json({ ip, puerto: PORT, url: `http://${ip}:${PORT}` });
+    
+    // Agregamos /panel al final para que los dispositivos vayan directo allí
+    res.json({ 
+        ip, 
+        puerto: PORT, 
+        url: `http://${ip}:${PORT}/panel` 
+    });
 });
 
-// QR como PNG binario directo
+// QR como PNG binario (Ideal si usas una etiqueta <img src="/api/qr">)
 app.get('/api/qr', async (req, res) => {
-    const url = req.query.url || 'http://localhost:4000/panel';
+    const ip = Object.values(os.networkInterfaces())
+        .flat()
+        .find(i => i.family === 'IPv4' && !i.internal)?.address || 'localhost';
+    
+    // Si no viene una URL por parámetro, usa la IP real del panel como respaldo
+    const urlDefault = `http://${ip}:${PORT}/panel`;
+    const url = req.query.url || urlDefault;
+    
     try {
         const buffer = await QRCode.toBuffer(url, { width: 210, margin: 2 });
         res.setHeader('Content-Type', 'image/png');
         res.setHeader('Cache-Control', 'no-store');
         res.end(buffer);
-    } catch (err) {
-        res.status(500).send('Error generando QR');
+    } catch (err) { 
+        res.status(500).send('Error al generar el QR binario'); 
     }
 });
+
+
 
 const PORT = 4000;
 app.listen(PORT, '0.0.0.0', () => { console.log(`🚀 Servidor MacroDev Estable corriendo en http://localhost:${PORT}`); });
