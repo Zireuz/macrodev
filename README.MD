@@ -108,11 +108,11 @@ const CARPETA_MADRE = 'C:\\Users\\TU_USUARIO\\Desktop\\PORTAFOLIO';
 ### Arrancar MacroDev
 
 **Opción A — doble click:**
-Doble click en `iniciar.bat`. El servidor arranca en segundo plano y abre el navegador automáticamente.
+Doble click en `iniciar.VBS`. El servidor arranca en segundo plano y abre el navegador automáticamente.
 
 **Opción B — terminal:**
-```cmd
-node server.js
+```cmd (abrir terminal desde la carpeta macrodev)
+npx electron .
 ```
 
 ### Acceder desde el móvil
