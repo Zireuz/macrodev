@@ -192,3 +192,9 @@ code --install-extension macrodev-terminal-1.0.0.vsix
 ```
 
 Reinicia VS Code después.
+
+🤝 Contribuciones
+
+Este proyecto es una pieza de portafolio personal. Si deseas sugerir mejoras de UI/UX o correcciones en el contenido, siéntete libre de abrir un Pull Request.
+
+Landing page diseñada y mantenida por [William / Zireuz] Linkedin: https://www.linkedin.com/in/zireuz-software. Contacto: +57 3156374818 Correo: willdevmor@gmail.com
